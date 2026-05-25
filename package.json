@@ -1,13 +1,13 @@
 {
   "name": "@mongez/query-string",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Tiny query-string parse/serialize with nested-object and array support, default-export API, plus a browser helper for reading and replacing the current URL.",
   "main": "src/index.ts",
   "sideEffects": false,
   "author": "hassanzohdy",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hassanzohdy/mongez-query-string"
+    "url": "https://github.com/hassanzohdy/query-string"
   },
   "license": "MIT",
   "scripts": {

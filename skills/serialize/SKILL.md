@@ -35,10 +35,10 @@ Insertion order is preserved (Object.keys iterates string keys in insertion orde
 queryString.toQueryString({ on: true });                // "on=true"
 queryString.toQueryString({ on: false });               // "on=false"
 queryString.toQueryString({ v: undefined });            // "v=undefined"
-queryString.toQueryString({ v: null });                 // ""   — quirk
+queryString.toQueryString({ v: null });                 // "v=null"
 ```
 
-`null` is dropped because `typeof null === "object"` routes it into the recursive branch and `{ ...null }` collapses to `{}`. Use `undefined` if you want the literal `"undefined"` to appear instead, or filter null entries out at the call site.
+`null` is short-circuited before the recursive object branch and emits the literal `"null"`. `undefined` runs through `encodeURIComponent` and emits the literal `"undefined"`. Filter either at the call site if you want the key dropped.
 
 ## Arrays — `key[]=value`
 
@@ -75,22 +75,19 @@ queryString.toQueryString("");                          // ""
 
 This is what makes `queryString.update("foo=bar")` work — the string short-circuits the serializer.
 
-## No percent-encoding
+## Percent-encoding
 
-`toQueryString` does NOT call `encodeURIComponent` on values. Strings containing `&` or `=` produce ambiguous output:
-
-```ts
-queryString.toQueryString({ q: "a&b" });                // "q=a&b"   — looks like two keys
-queryString.toQueryString({ q: "hello world" });        // "q=hello world"   — literal space
-```
-
-If your values may contain reserved characters, pre-encode at the call site:
+`toQueryString` calls `encodeURIComponent` on each value (and each array element), so reserved characters round-trip safely without pre-encoding at the call site:
 
 ```ts
-queryString.toQueryString({ q: encodeURIComponent("a&b") });   // "q=a%26b"
+queryString.toQueryString({ q: "a&b" });                // "q=a%26b"
+queryString.toQueryString({ q: "a=b" });                // "q=a%3Db"
+queryString.toQueryString({ q: "hello world" });        // "q=hello%20world"
 ```
 
-This is a documented quirk — see CHANGELOG.
+Keys are NOT encoded — only values. If a key itself contains reserved characters, that's the caller's problem; the public API expects regular identifier-shaped keys.
+
+Pre-encoding values yourself (e.g. `encodeURIComponent("a&b")`) before passing them in will double-encode (`%2526` instead of `%26`). Pass raw strings and let the serializer handle it.
 
 ## update — write to the URL
 

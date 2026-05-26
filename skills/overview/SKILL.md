@@ -66,6 +66,6 @@ There are no named exports for the public API. The internal `toObjectParser` / `
 
 - **Call `update` from event handlers, not effects.** It's a deliberate side effect on browser history; running it in a `useEffect` makes the URL flip on every render. If you must, debounce or compare against `queryString.toString()` first.
 - **Don't trust `get(key, default)` for falsy values.** `all[key] || default` falls through for `0`, `""`, `false`. Use `key in queryString.all()` if you need a presence check.
-- **Pre-encode values with `encodeURIComponent`** if they may contain `&`, `=`, `?`, or non-ASCII characters. The serializer does NOT encode for you.
+- **Pass raw strings to the serializer** — `toQueryString` runs values through `encodeURIComponent` for you. Pre-encoding at the call site double-encodes.
 - **Use `update({})` to clear the query string.** It rewrites the URL to just the pathname.
 - **`update` does not fire `popstate`.** If you mirror URL state into another store, subscribe to your store, not `popstate`.

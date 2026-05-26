@@ -135,7 +135,7 @@ For a strict presence check ("did the user pass `?empty=`?"), don't use `get` â€
 |---|---|---|
 | `""` | `{}` | Empty short-circuits. |
 | `"?"` | `{}` | Question-mark alone is empty after strip. |
-| `"foo"` (no `=`) | `{ foo: "undefined" }` | Documented quirk â€” see CHANGELOG. |
+| `"foo"` (no `=`) | `{ foo: "" }` | Missing `=` yields an undefined `pair[1]`, which the parser normalizes to `""`. |
 | `"foo="` | `{ foo: "" }` | `isNumeric("")` is false; decode of `""` is `""`. |
 | `parse(undefined)` | throws | `undefined.startsWith` throws TypeError. |
 

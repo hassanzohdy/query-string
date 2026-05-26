@@ -71,23 +71,14 @@ If the user has a single selection, `queryString.all()` returns it as an array (
 
 ## Safe round-trip for arbitrary values
 
-The serializer does NOT percent-encode. If your values may contain `&`, `=`, `?`, `%`, or non-ASCII characters, encode at the call site.
+The serializer calls `encodeURIComponent` on each value, so reserved characters round-trip cleanly without any call-site pre-encoding:
 
 ```ts
-function encodeValues(obj: Record<string, any>): Record<string, any> {
-  const out: Record<string, any> = {};
-  for (const [k, v] of Object.entries(obj)) {
-    if (v == null) continue;
-    if (Array.isArray(v)) out[k] = v.map(encodeURIComponent);
-    else if (typeof v === "object") out[k] = encodeValues(v);
-    else out[k] = encodeURIComponent(String(v));
-  }
-  return out;
-}
-
-queryString.update(encodeValues({ q: "a&b", category: "books / fiction" }));
+queryString.update({ q: "a&b", category: "books / fiction" });
 // URL: /list?q=a%26b&category=books%20%2F%20fiction
 ```
+
+Pre-encoding yourself would double-encode (`%2526` instead of `%26`). Pass raw strings.
 
 On the way back, values come out of `parse` already decoded — but only for non-numeric values. If your encoded string happens to look numeric (`"42"`), the parser will coerce it to `42` without decoding. Round-trip safely by keeping ID-like fields under a non-numeric key prefix, or encode them server-side as `id-42` rather than `42`.
 

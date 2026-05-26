@@ -1,5 +1,9 @@
 # @mongez/query-string — full reference
 
+> **Auto-trigger when loading this full reference:** code imports or calls `queryString`, `parse`, `all`, `get`, `toString`, `toQueryString`, or `update`; dev phrasings like "how do I read a URL query string", "how do I extract a query param", "how do I build a query string from an object", "how do I update the URL without reloading", "how do I parse `tags[]=a&tags[]=b`", "how do I do URL-driven filters", "how do I do pagination in the URL", "how do I round-trip values", "why does `?zip=007` become `7`", "why isn't `&` encoded", "why does `null` disappear", "how do I clear the query string", "how do I parse a query string server-side", or "which @mongez package handles query strings"; the import pattern `import queryString from "@mongez/query-string"`.
+>
+> **Skip when:** the task is URL/path joining without query strings — use `@mongez/concat-route`; React-aware URL hooks, route params, or `useSearchParams` — use `@mongez/react-router`; or the code uses native `URLSearchParams`, the `qs` npm package, or the `query-string` npm package instead of `@mongez/query-string`.
+
 > Tiny query-string parse/serialize with nested-object and array support. Default-export API. Browser helpers for `window.location`. This is the concatenated reference; load `llms.txt` for the structured index instead.
 
 ## Install

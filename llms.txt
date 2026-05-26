@@ -13,17 +13,21 @@ import queryString from "@mongez/query-string";
 ## Docs
 
 - [Overview](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/skills/overview.md): Pitch, install, mental model, environment.
+  - *Auto-trigger:* Load when code imports the default-export `queryString` and the user asks what the package does or whether it works server-side.
 - [README](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/README.md): Marketing-style index.
 - [Changelog](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/CHANGELOG.md): Release notes, documented quirks.
 
 ## Reference (by area)
 
 - [Parse](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/skills/parse.md): `queryString.parse(text)` and `queryString.all(text?)`. Numeric coercion (`age=42` → `{ age: 42 }`), `decodeURIComponent` on non-numeric values, `key[]` arrays, `key[sub]` nesting. Edge cases: empty input, missing `=`, leading `?`.
+  - *Auto-trigger:* Load when code calls `queryString.parse`, `queryString.all`, or `queryString.get`, or the user asks how to read a URL query string.
 - [Serialize](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/skills/serialize.md): `queryString.toQueryString(params)` and `queryString.update(params)`. Object → query string, array `[]=` syntax, nested `parent[child]=` syntax, string passthrough. Known quirks: no percent-encoding, `null` drops the key.
+  - *Auto-trigger:* Load when code calls `queryString.toQueryString`, `queryString.update`, or `queryString.toString`, or the user asks how to build/update a URL query string.
 
 ## Recipes
 
 - [Recipes](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/skills/recipes.md): URL-driven filters, pagination, list-page sync, round-tripping safely.
+  - *Auto-trigger:* Load when code combines multiple `queryString.*` calls for filter/pagination/multi-select flows, store sync, or safe round-tripping with `encodeURIComponent`.
 
 ## Quick rules
 

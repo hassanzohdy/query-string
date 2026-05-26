@@ -1,7 +1,9 @@
 ---
 name: mongez-query-string-overview
-description: Package orientation for @mongez/query-string — what it does, how to import it, its mental model, environment constraints, and scope boundaries vs. sibling packages.
-when_to_use: User imports queryString from "@mongez/query-string" for the first time, user asks what the package does or how it works, user is unsure which @mongez package handles URL query strings, user needs to understand browser vs. server constraints for the package.
+description: |
+  Package orientation for `@mongez/query-string` — what it does, how to import it, its mental model, environment constraints, and scope boundaries vs. sibling packages.
+  TRIGGER when: code imports the default-export `queryString` and calls `parse`, `toQueryString`, `all`, `get`, `toString`, or `update` from `@mongez/query-string`; user asks "what does @mongez/query-string do", "which @mongez package handles query strings", or "can I use this on the server"; `import queryString from "@mongez/query-string"`.
+  SKIP: deep-dive parse semantics (numeric coercion, `[]` arrays, `[sub]` nesting) — use `mongez-query-string-parse`; deep-dive serialize semantics, `update`, `null` quirks — use `mongez-query-string-serialize`; full filter/pagination/round-trip patterns — use `mongez-query-string-recipes`; URL/path joining (`@mongez/concat-route`); React-aware URL hooks (`@mongez/react-router`); native `URLSearchParams`.
 ---
 
 # Overview

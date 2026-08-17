@@ -2,9 +2,13 @@ type ObjectType = Record<string, any>;
 
 const isNumeric = (value: any) => !isNaN(value - parseFloat(value));
 
+const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+const isForbiddenKey = (key: string) => FORBIDDEN_KEYS.has(key);
+
 export function toObjectParser(query: string) {
   const vars = query.split("&");
-  const result: ObjectType = {};
+  const result: ObjectType = Object.create(null);
 
   for (let i = 0; i < vars.length; i++) {
     const pair = vars[i].split("=");
@@ -23,9 +27,14 @@ export function toObjectParser(query: string) {
 
     const keys = key.split("[");
 
+    if (keys.some((rawKey) => isForbiddenKey(rawKey.replace("]", "")))) {
+      continue;
+    }
+
     let currentObj = result;
     for (let j = 0; j < keys.length; j++) {
       const currentKey = keys[j].replace("]", "");
+
       if (j === keys.length - 1) {
         if (isArrayKey) {
           if (!currentObj[currentKey]) {
@@ -37,7 +46,7 @@ export function toObjectParser(query: string) {
         }
       } else {
         if (!currentObj[currentKey]) {
-          currentObj[currentKey] = {};
+          currentObj[currentKey] = Object.create(null);
         }
         currentObj = currentObj[currentKey];
       }

@@ -2,8 +2,6 @@
 name: mongez-query-string-parse
 description: |
   How to parse URL query strings into objects using `queryString.parse`, `queryString.all`, and `queryString.get` — including numeric coercion, `decodeURIComponent`, `key[]` arrays, and `key[sub]` nested-object syntax.
-  TRIGGER when: code calls `queryString.parse`, `queryString.all`, or `queryString.get` from `@mongez/query-string`; user asks "how do I read a URL query string", "how do I extract a query param", "why does `?zip=007` become `7`", "how do I parse `tags[]=a&tags[]=b`", or "how do I handle `+` vs `%20`"; `import queryString from "@mongez/query-string"` followed by reading the URL.
-  SKIP: serialization / writing the URL — use `mongez-query-string-serialize`; end-to-end filter, pagination, multi-select, round-trip flows — use `mongez-query-string-recipes`; package orientation and scope — use `mongez-query-string-overview`; native `URLSearchParams`; React Router's `useSearchParams` / param helpers.
 ---
 
 # Parse
@@ -109,6 +107,11 @@ Two unrelated parents in one string are fine:
 queryString.parse("user[name]=alice&meta[role]=admin");
 // { user: { name: "alice" }, meta: { role: "admin" } }
 ```
+
+`__proto__`, `constructor` and `prototype` are refused as key segments — `?__proto__[x]=1` is
+dropped rather than written through to `Object.prototype`. The returned object and every nested object it builds
+have a `null` prototype, so they carry no inherited keys (`result.toString` is `undefined`);
+spread into a literal (`{ ...result }`) if you need a normal object.
 
 ## Single-key reads via `get`
 

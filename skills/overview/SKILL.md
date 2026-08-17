@@ -1,37 +1,54 @@
 ---
 name: mongez-query-string-overview
 description: |
-  Package orientation for `@mongez/query-string` — what it does, how to import it, its mental model, environment constraints, and scope boundaries vs. sibling packages.
-  TRIGGER when: code imports the default-export `queryString` and calls `parse`, `toQueryString`, `all`, `get`, `toString`, or `update` from `@mongez/query-string`; user asks "what does @mongez/query-string do", "which @mongez package handles query strings", or "can I use this on the server"; `import queryString from "@mongez/query-string"`.
-  SKIP: deep-dive parse semantics (numeric coercion, `[]` arrays, `[sub]` nesting) — use `mongez-query-string-parse`; deep-dive serialize semantics, `update`, `null` quirks — use `mongez-query-string-serialize`; full filter/pagination/round-trip patterns — use `mongez-query-string-recipes`; URL/path joining (`@mongez/concat-route`); React-aware URL hooks (`@mongez/react-router`); native `URLSearchParams`.
+  @mongez/query-string — parse and serialize URL query strings with array bracket + nested-object support, plus a no-reload browser URL rewriter. Zero deps.
 ---
 
-# Overview
+# @mongez/query-string — Overview
 
-`@mongez/query-string` is the parse/serialize half of every URL-driven feature — filters, sorts, pagination, search forms — packaged as one default-export object. Pass it an object, get back a query string with `[]` array brackets and `[parent][child]` nesting. Pass it a query string, get back an object with numeric coercion applied.
+The parse/serialize half of every URL-driven feature — filters, sorts, pagination, search forms — packaged as one default export. Pass it an object, get back a query string with `[]` array brackets and `[parent][child]` nesting. Pass it a query string, get back an object with numeric coercion applied. Four browser-bound methods (`all`, `get`, `update`, `toString`) read and write `window.location`; the two pure data methods (`parse`, `toQueryString`) work anywhere.
 
-Four browser-bound methods (`all`, `get`, `update`, `toString`) read and write `window.location`. The two pure data methods (`parse`, `toQueryString`) work anywhere.
+## Highlighted features
 
-No runtime dependencies.
+<div class="mongez-highlights">
+
+<div class="mongez-highlight" data-accent="ice">
+  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+  <h3>Nested object + array shapes</h3>
+  <p><code>?tags[]=a&user[name]=alice</code> ⇄ <code>{ tags: ["a"], user: { name: "alice" } }</code>. Any depth, both directions.</p>
+</div>
+
+<div class="mongez-highlight" data-accent="ice">
+  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+  <h3>Numeric coercion on parse</h3>
+  <p><code>"page=2"</code> parses as <code>{ page: 2 }</code> — the number, not the string. Lossy by design: <code>"007"</code> → <code>7</code>.</p>
+</div>
+
+<div class="mongez-highlight" data-accent="fire">
+  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+  <h3>No-reload URL rewriter</h3>
+  <p><code>queryString.update({...})</code> rewrites <code>window.location.search</code> via <code>history.replaceState</code> — no reload, no <code>popstate</code> fire.</p>
+</div>
+
+<div class="mongez-highlight" data-accent="bolt">
+  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+  <h3>Zero deps, SSR-safe parsers</h3>
+  <p>The two pure methods (<code>parse</code>, <code>toQueryString</code>) work in browser, Node, and edge workers. Browser-only methods are clearly demarcated.</p>
+</div>
+
+</div>
 
 ## Install
 
 ```sh
-# npm
 npm install @mongez/query-string
-
-# yarn
-yarn add @mongez/query-string
-
-# pnpm
-pnpm add @mongez/query-string
+# or: yarn add @mongez/query-string
+# or: pnpm add @mongez/query-string
 ```
 
 Zero runtime dependencies.
 
-## Quick example
-
-Parse and serialize with array + nested-object support, plus a no-reload URL rewriter for browser code:
+## Quick peek
 
 ```ts
 import queryString from "@mongez/query-string";
@@ -46,22 +63,7 @@ queryString.update({ tag: "books", page: 1 });
 // window.location.search becomes "?tag=books&page=1" — no reload
 ```
 
-## Import pattern
-
-```ts
-import queryString from "@mongez/query-string";
-
-queryString.parse(text);
-queryString.toQueryString(obj);
-
-// browser-only:
-queryString.all();
-queryString.get(key, fallback);
-queryString.toString();
-queryString.update(params);
-```
-
-There are no named exports for the public API. The internal `toObjectParser` / `toStringParser` are reachable for callers that want to bypass the facade, but they're implementation details.
+Parse and serialize with array + nested-object support, plus a no-reload URL rewriter for browser code.
 
 ## Mental model
 
@@ -69,29 +71,26 @@ There are no named exports for the public API. The internal `toObjectParser` / `
 |---|---|---|
 | `parse` / `toQueryString` | pure function | Stateless conversion between `Record<string, any>` and `string`. Same in browser and server. |
 | `all` / `get` / `toString` | browser read | Sugar over `parse(window.location.search)`. |
-| `update` | browser write | Sugar over `history.replaceState(pathname + "?" + toQueryString(params))`. |
-| Numeric coercion | parse-time | Values matching `!isNaN(v - parseFloat(v))` become numbers. Lossy by design: `"007"` → `7`. |
+| `update` | browser write | Sugar over `history.replaceState`. |
+| Numeric coercion | parse-time | Values matching `!isNaN(v - parseFloat(v))` become numbers. Lossy: `"007"` → `7`. |
 | Array shape | URL convention | `key[]=a&key[]=b` ⇄ `{ key: ["a", "b"] }`. |
 | Object shape | URL convention | `parent[child]=v` ⇄ `{ parent: { child: v } }`. Any depth. |
 
 ## Environment
 
 - **Browser**: every method works.
-- **Server / Worker**: `parse` and `toQueryString` are safe. `all` / `get` / `toString` / `update` reference `window.location` / `window.history` and will throw. Guard with `typeof window !== "undefined"` if the same module loads on both sides, or call from a client-only effect.
-
-## Scope boundaries
-
-| Concern | Lives in | Why |
-|---|---|---|
-| URL / path joining, normalization | `@mongez/concat-route` | Different concern from query-string |
-| React-aware URL state hooks | `@mongez/react-router` | This package is framework-agnostic |
-| Cookies / localStorage / sessionStorage | `@mongez/cache` | Different storage |
-| Form state | `@mongez/react-form` | Different concern |
+- **Server / Worker**: `parse` and `toQueryString` are safe. `all` / `get` / `toString` / `update` reference `window.location` / `window.history` and will throw. Guard with `typeof window !== "undefined"` if the same module loads on both sides.
 
 ## Idioms
 
-- **Call `update` from event handlers, not effects.** It's a deliberate side effect on browser history; running it in a `useEffect` makes the URL flip on every render. If you must, debounce or compare against `queryString.toString()` first.
-- **Don't trust `get(key, default)` for falsy values.** `all[key] || default` falls through for `0`, `""`, `false`. Use `key in queryString.all()` if you need a presence check.
-- **Pass raw strings to the serializer** — `toQueryString` runs values through `encodeURIComponent` for you. Pre-encoding at the call site double-encodes.
+- **Call `update` from event handlers, not effects.** It's a deliberate side effect on browser history; running it in a `useEffect` makes the URL flip on every render.
+- **Don't trust `get(key, default)` for falsy values.** Use `key in queryString.all()` if you need a presence check.
+- **Pass raw strings to the serializer.** `toQueryString` runs values through `encodeURIComponent` for you — pre-encoding double-encodes.
 - **Use `update({})` to clear the query string.** It rewrites the URL to just the pathname.
 - **`update` does not fire `popstate`.** If you mirror URL state into another store, subscribe to your store, not `popstate`.
+
+## Where to go next
+
+- **[Parse](../parse/)** — input shapes, coercion rules, edge cases
+- **[Serialize](../serialize/)** — output shapes, encoding rules
+- **[Recipes](../recipes/)** — common patterns

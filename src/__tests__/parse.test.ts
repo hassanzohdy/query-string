@@ -157,4 +157,39 @@ describe("queryString.parse", () => {
       expect(queryString.parse("foo")).toEqual({ foo: "" });
     });
   });
+
+  describe("prototype pollution guards", () => {
+    it("does not pollute Object.prototype via '__proto__[x]=y'", () => {
+      queryString.parse("__proto__[x]=y");
+      expect(({} as any).x).toBeUndefined();
+    });
+
+    it("does not pollute Object.prototype via 'constructor[prototype][x]=y'", () => {
+      queryString.parse("constructor[prototype][x]=y");
+      expect(({} as any).x).toBeUndefined();
+    });
+
+    it("does not pollute Object.prototype via '__proto__.x=y'", () => {
+      queryString.parse("__proto__.x=y");
+      expect(({} as any).x).toBeUndefined();
+    });
+
+    it("does not pollute Object.prototype via nested 'a[__proto__][x]=y'", () => {
+      queryString.parse("a[__proto__][x]=y");
+      expect(({} as any).x).toBeUndefined();
+    });
+
+    it("skips forbidden segments instead of throwing, and still parses siblings", () => {
+      expect(
+        queryString.parse("__proto__[x]=y&safe=1"),
+      ).toEqual({ safe: 1 });
+    });
+
+    it("still parses legitimate nested objects correctly", () => {
+      expect(queryString.parse("a[b][c]=1")).toEqual({ a: { b: { c: 1 } } });
+      expect(
+        queryString.parse("user[name]=alice&user[age]=30"),
+      ).toEqual({ user: { name: "alice", age: 30 } });
+    });
+  });
 });

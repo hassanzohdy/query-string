@@ -1,5 +1,11 @@
 # Changelog — @mongez/query-string
 
+## [1.2.4] — 2026-08-17
+
+### Security
+
+- **Prototype pollution through bracket-notation keys in `toObjectParser`** (`src/query-string-parsers.ts:5`, `:11`, `:49`). Nested keys were walked by assigning into plain `{}` accumulators, so `?__proto__[isAdmin]=1` and `?constructor[prototype][isAdmin]=1` wrote through to `Object.prototype`. Every object in the page then reads `isAdmin` as `"1"` — including objects consuming apps use for feature gates and authorization decisions — and the value survives until reload. The input here is a URL, so a crafted link is the entire attack. `__proto__`, `constructor` and `prototype` are now rejected as key segments, and every accumulator the parser creates uses `Object.create(null)`, so no nesting level can resolve to a prototype in the first place. Ordinary keys are unaffected.
+
 ## [1.2.3] — 2026-05-26
 
 ### Fixed

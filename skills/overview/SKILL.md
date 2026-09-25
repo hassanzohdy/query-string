@@ -1,96 +1,42 @@
 ---
 name: mongez-query-string-overview
-description: |
-  @mongez/query-string — parse and serialize URL query strings with array bracket + nested-object support, plus a no-reload browser URL rewriter. Zero deps.
+description: Understand the @mongez/query-string default export, its pure parse and serialization methods, and its browser-only URL helpers.
 ---
 
-# @mongez/query-string — Overview
-
-The parse/serialize half of every URL-driven feature — filters, sorts, pagination, search forms — packaged as one default export. Pass it an object, get back a query string with `[]` array brackets and `[parent][child]` nesting. Pass it a query string, get back an object with numeric coercion applied. Four browser-bound methods (`all`, `get`, `update`, `toString`) read and write `window.location`; the two pure data methods (`parse`, `toQueryString`) work anywhere.
-
-## Highlighted features
-
-<div class="mongez-highlights">
-
-<div class="mongez-highlight" data-accent="ice">
-  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-  <h3>Nested object + array shapes</h3>
-  <p><code>?tags[]=a&user[name]=alice</code> ⇄ <code>{ tags: ["a"], user: { name: "alice" } }</code>. Any depth, both directions.</p>
-</div>
-
-<div class="mongez-highlight" data-accent="ice">
-  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-  <h3>Numeric coercion on parse</h3>
-  <p><code>"page=2"</code> parses as <code>{ page: 2 }</code> — the number, not the string. Lossy by design: <code>"007"</code> → <code>7</code>.</p>
-</div>
-
-<div class="mongez-highlight" data-accent="fire">
-  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-  <h3>No-reload URL rewriter</h3>
-  <p><code>queryString.update({...})</code> rewrites <code>window.location.search</code> via <code>history.replaceState</code> — no reload, no <code>popstate</code> fire.</p>
-</div>
-
-<div class="mongez-highlight" data-accent="bolt">
-  <svg class="mongez-highlight-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-  <h3>Zero deps, SSR-safe parsers</h3>
-  <p>The two pure methods (<code>parse</code>, <code>toQueryString</code>) work in browser, Node, and edge workers. Browser-only methods are clearly demarcated.</p>
-</div>
-
-</div>
-
-## Install
-
-```sh
-npm install @mongez/query-string
-# or: yarn add @mongez/query-string
-# or: pnpm add @mongez/query-string
-```
-
-Zero runtime dependencies.
-
-## Quick peek
+# @mongez/query-string overview
 
 ```ts
 import queryString from "@mongez/query-string";
-
-queryString.parse("?page=2&tags[]=a&tags[]=b&user[name]=alice");
-// → { page: 2, tags: ["a", "b"], user: { name: "alice" } }
-
-queryString.toQueryString({ page: 2, tags: ["a", "b"] });
-// → "page=2&tags[]=a&tags[]=b"
-
-queryString.update({ tag: "books", page: 1 });
-// window.location.search becomes "?tag=books&page=1" — no reload
 ```
 
-Parse and serialize with array + nested-object support, plus a no-reload URL rewriter for browser code.
+The default export has six methods:
 
-## Mental model
+| Method | Use | Runtime |
+| --- | --- | --- |
+| `parse(text)` | Parse supplied search text. | Any runtime |
+| `toQueryString(params)` | Serialize an object or pass through a string. | Any runtime |
+| `all(text?)` | Parse supplied text, or `window.location.search` by default. | Browser when no text is supplied |
+| `get(key, fallback?)` | Read one key from the current browser URL. | Browser |
+| `toString()` | Read the current search text without `?`. | Browser |
+| `update(params)` | Replace the current URL search with serialized params. | Browser |
 
-| Concept | Type | Mental model |
-|---|---|---|
-| `parse` / `toQueryString` | pure function | Stateless conversion between `Record<string, any>` and `string`. Same in browser and server. |
-| `all` / `get` / `toString` | browser read | Sugar over `parse(window.location.search)`. |
-| `update` | browser write | Sugar over `history.replaceState`. |
-| Numeric coercion | parse-time | Values matching `!isNaN(v - parseFloat(v))` become numbers. Lossy: `"007"` → `7`. |
-| Array shape | URL convention | `key[]=a&key[]=b` ⇄ `{ key: ["a", "b"] }`. |
-| Object shape | URL convention | `parent[child]=v` ⇄ `{ parent: { child: v } }`. Any depth. |
+`parse` and `toQueryString` are the server-safe pair. Browser helpers access
+`window`; guard them when a module is shared with SSR or workers.
 
-## Environment
+```ts
+const filters = queryString.parse("?page=2&tags[]=books");
+// { page: 2, tags: ["books"] }
 
-- **Browser**: every method works.
-- **Server / Worker**: `parse` and `toQueryString` are safe. `all` / `get` / `toString` / `update` reference `window.location` / `window.history` and will throw. Guard with `typeof window !== "undefined"` if the same module loads on both sides.
+const search = queryString.toQueryString({ page: 3, tags: ["books"] });
+// "page=3&tags[]=books"
+```
 
-## Idioms
+Parsing converts numeric-looking values to numbers, arrays use `key[]`, and
+nested values use bracket keys such as `user[name]`. Serialization uses the
+same shapes and encodes values with `encodeURIComponent`.
 
-- **Call `update` from event handlers, not effects.** It's a deliberate side effect on browser history; running it in a `useEffect` makes the URL flip on every render.
-- **Don't trust `get(key, default)` for falsy values.** Use `key in queryString.all()` if you need a presence check.
-- **Pass raw strings to the serializer.** `toQueryString` runs values through `encodeURIComponent` for you — pre-encoding double-encodes.
-- **Use `update({})` to clear the query string.** It rewrites the URL to just the pathname.
-- **`update` does not fire `popstate`.** If you mirror URL state into another store, subscribe to your store, not `popstate`.
+## Next topic
 
-## Where to go next
-
-- **[Parse](../parse/)** — input shapes, coercion rules, edge cases
-- **[Serialize](../serialize/)** — output shapes, encoding rules
-- **[Recipes](../recipes/)** — common patterns
+- [Parse query strings](../parse/SKILL.md)
+- [Serialize and update URLs](../serialize/SKILL.md)
+- [Recipes](../recipes/SKILL.md)

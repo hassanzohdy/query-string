@@ -1,148 +1,54 @@
 ---
 name: mongez-query-string-parse
-description: |
-  How to parse URL query strings into objects using `queryString.parse`, `queryString.all`, and `queryString.get` — including numeric coercion, `decodeURIComponent`, `key[]` arrays, and `key[sub]` nested-object syntax.
+description: Parse @mongez/query-string input with numeric coercion, key[] arrays, bracketed objects, URI decoding, and browser URL reads.
 ---
 
-# Parse
+# Parse query strings
 
-`queryString.parse(text)` and `queryString.all(text?)` turn a query string into an object. `parse` requires the argument; `all` defaults to `window.location.search`.
-
-## Signatures
+Use `parse` for supplied text. It accepts text with or without a leading `?`:
 
 ```ts
-queryString.parse(searchParams: string): Record<string, any>
-queryString.all(searchParams?: string): Record<string, any>
-queryString.get(key: string, defaultValue?: any = null): any
+import queryString from "@mongez/query-string";
+
+const filters = queryString.parse(
+  "?page=2&tags[]=books&tags[]=fiction&user[name]=Dina",
+);
+// { page: 2, tags: ["books", "fiction"], user: { name: "Dina" } }
 ```
 
-## Basics
+`all()` has the same parsing behavior but defaults to `window.location.search`:
 
 ```ts
-queryString.parse("foo=bar");                // { foo: "bar" }
-queryString.parse("?foo=bar");               // { foo: "bar" }   — leading "?" stripped
-queryString.parse("a=1&b=2");                // { a: 1, b: 2 }
-queryString.parse("");                       // {}
-queryString.parse("?");                      // {}
-
-// `all` is `parse` with `window.location.search` as the default.
-// On URL: /products?tag=books&page=2
-queryString.all();                           // { tag: "books", page: 2 }
-queryString.all("?x=1");                     // { x: 1 }   — explicit arg wins
+const filters = queryString.all(); // browser only
+const supplied = queryString.all("?page=2");
 ```
 
-## Numeric coercion
+## Rules that affect application code
 
-Values that look numeric come back as numbers. The check is `!isNaN(value - parseFloat(value))`:
+- Numeric-looking values become numbers: `page=2` becomes `{ page: 2 }` and
+  `zip=007` becomes `{ zip: 7 }`. Booleans remain strings.
+- `tags[]=a&tags[]=b` produces `tags: ["a", "b"]`; repeated plain keys use
+  the last value.
+- `user[name]=Dina` produces `user: { name: "Dina" }`, including deeper
+  bracket nesting.
+- Non-numeric values are decoded with `decodeURIComponent`; `+` remains a
+  literal plus rather than becoming a space.
+- Unsafe path segments `__proto__`, `constructor`, and `prototype` are
+  ignored. Parsed objects use a null prototype, so spread them when a normal
+  object prototype is required.
+
+## Read one browser value
+
+`get` applies its fallback with `||`, so a parsed `0`, empty string, `false`,
+or `null` also returns the fallback. Use `key in queryString.all()` for a
+presence check.
 
 ```ts
-queryString.parse("age=42");                 // { age: 42 }
-queryString.parse("pi=3.14");                // { pi: 3.14 }
-queryString.parse("neg=-5");                 // { neg: -5 }
-queryString.parse("zero=0");                 // { zero: 0 }
-queryString.parse("zip=007");                // { zip: 7 }   — leading zeros collapse
+const page = queryString.get("page", 1);
+const hasPage = "page" in queryString.all();
 ```
 
-Strings that look numeric-ish but aren't strict numbers stay as strings:
+## Next topic
 
-```ts
-queryString.parse("x=NaN");                  // { x: "NaN" }
-queryString.parse("x=Infinity");             // { x: "Infinity" }
-queryString.parse("x=true");                 // { x: "true" }    — no boolean coercion
-```
-
-If you need `"007"` to stay a string (zip codes, phone numbers, version strings), the URL is the wrong place — coerce at the consumer or use a key the parser doesn't number-coerce. There's no flag to disable coercion.
-
-## URL decoding
-
-Non-numeric values run through `decodeURIComponent`:
-
-```ts
-queryString.parse("greeting=hello%20world"); // { greeting: "hello world" }
-queryString.parse("path=%2Fhome%2Fuser");    // { path: "/home/user" }
-
-// `+` is NOT translated to a space — decodeURIComponent treats it literally.
-queryString.parse("q=a+b");                  // { q: "a+b" }
-```
-
-If your producer encodes spaces as `+`, pre-process:
-
-```ts
-queryString.parse(text.replace(/\+/g, "%20"));
-```
-
-## Arrays — `key[]=value`
-
-```ts
-queryString.parse("tags[]=a&tags[]=b");      // { tags: ["a", "b"] }
-queryString.parse("ids[]=1&ids[]=2&ids[]=3"); // { ids: [1, 2, 3] }   — each element coerced
-queryString.parse("vals[]=1&vals[]=two");    // { vals: [1, "two"] }
-```
-
-A single occurrence still yields a single-element array, not a scalar:
-
-```ts
-queryString.parse("tags[]=a");               // { tags: ["a"] }
-```
-
-Without the `[]` suffix, repeated keys overwrite — last write wins:
-
-```ts
-queryString.parse("k=one&k=two");            // { k: "two" }
-```
-
-## Nested objects — `parent[child]=value`
-
-```ts
-queryString.parse("user[name]=alice&user[age]=30");
-// { user: { name: "alice", age: 30 } }
-
-queryString.parse("a[b][c]=1");
-// { a: { b: { c: 1 } } }
-```
-
-Two unrelated parents in one string are fine:
-
-```ts
-queryString.parse("user[name]=alice&meta[role]=admin");
-// { user: { name: "alice" }, meta: { role: "admin" } }
-```
-
-`__proto__`, `constructor` and `prototype` are refused as key segments — `?__proto__[x]=1` is
-dropped rather than written through to `Object.prototype`. The returned object and every nested object it builds
-have a `null` prototype, so they carry no inherited keys (`result.toString` is `undefined`);
-spread into a literal (`{ ...result }`) if you need a normal object.
-
-## Single-key reads via `get`
-
-```ts
-// On URL: /products?page=2&empty=
-queryString.get("page");                     // 2
-queryString.get("missing");                  // null   — default default
-queryString.get("missing", 1);               // 1
-queryString.get("missing", { x: 1 });        // { x: 1 }
-
-// Quirk: falsy values fall through the `||` fallback.
-queryString.get("empty", "fallback");        // "fallback"   (not "")
-```
-
-For a strict presence check ("did the user pass `?empty=`?"), don't use `get` — use `all()`:
-
-```ts
-"empty" in queryString.all();                // true
-```
-
-## Edge cases
-
-| Input | Result | Note |
-|---|---|---|
-| `""` | `{}` | Empty short-circuits. |
-| `"?"` | `{}` | Question-mark alone is empty after strip. |
-| `"foo"` (no `=`) | `{ foo: "" }` | Missing `=` yields an undefined `pair[1]`, which the parser normalizes to `""`. |
-| `"foo="` | `{ foo: "" }` | `isNumeric("")` is false; decode of `""` is `""`. |
-| `parse(undefined)` | throws | `undefined.startsWith` throws TypeError. |
-
-## Related skill cards
-
-- [`serialize.md`](./serialize.md) for the inverse direction.
-- [`recipes.md`](./recipes.md) for end-to-end flows.
+- [Serialize the inverse shape](../serialize/SKILL.md)
+- [Use the result in URL-state recipes](../recipes/SKILL.md)

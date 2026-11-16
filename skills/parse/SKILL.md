@@ -32,7 +32,10 @@ const supplied = queryString.all("?page=2");
 - `user[name]=Dina` produces `user: { name: "Dina" }`, including deeper
   bracket nesting.
 - Non-numeric values are decoded with `decodeURIComponent`; `+` remains a
-  literal plus rather than becoming a space.
+  literal plus rather than becoming a space. Malformed percent-encoding
+  (`%`, `%ZZ`) never throws; the raw text is kept.
+- Mixed shapes under one key never throw: a scalar before `key[]` joins the
+  array (`a=x&a[]=y` is `{ a: ["x", "y"] }`), otherwise the later shape wins.
 - Unsafe path segments `__proto__`, `constructor`, and `prototype` are
   ignored. Parsed objects use a null prototype, so spread them when a normal
   object prototype is required.

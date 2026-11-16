@@ -1,5 +1,16 @@
 # Changelog — @mongez/query-string
 
+## [1.2.6] — 2026-11-16
+
+### Fixed
+
+- **Malformed percent-encoding no longer throws.** `?a=%`, `?bad=%ZZ` and truncated UTF-8 like `?a=%E0%A4%A` threw `URIError`, so a crafted link could crash a page that read its query string. The raw text of a value that fails to decode is kept.
+- **Mixing a scalar with an array or object under one key no longer throws** (`?a=x&a[]=y` raised a TypeError).
+
+### Changed
+
+- `a=x&a[]=y` parses to `{ a: ["x", "y"] }`; in other mixes the later shape wins (`a[]=y&a=x` → `{ a: "x" }`, `a=x&a[b]=1` → `{ a: { b: 1 } }`). An existing `0` or `""` before `key[]` now joins the array instead of being dropped.
+
 ## [1.2.5] — 2026-09-25
 
 ### Changed

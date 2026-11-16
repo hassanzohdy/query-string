@@ -10,6 +10,27 @@ import { toObjectParser, toStringParser } from "../query-string-parsers";
  */
 
 describe("toObjectParser", () => {
+  it("keeps the raw text of a malformed percent-encoded value instead of throwing", () => {
+    expect(toObjectParser("a=%E0%A4%A")).toEqual({ a: "%E0%A4%A" });
+    expect(toObjectParser("a=%")).toEqual({ a: "%" });
+    expect(toObjectParser("bad=%ZZ&ok=a%20b")).toEqual({ bad: "%ZZ", ok: "a b" });
+  });
+
+  it("does not throw when a scalar and an array share a key", () => {
+    // the earlier scalar joins the array
+    expect(toObjectParser("a=x&a[]=y")).toEqual({ a: ["x", "y"] });
+    // a later scalar replaces the array
+    expect(toObjectParser("a[]=y&a=x")).toEqual({ a: "x" });
+  });
+
+  it("does not throw when a scalar and an object share a key", () => {
+    // the later shape wins
+    expect(toObjectParser("a=x&a[b]=1")).toEqual({ a: { b: 1 } });
+    expect(toObjectParser("a[b]=1&a=x")).toEqual({ a: "x" });
+    expect(toObjectParser("a[]=1&a[b]=2")).toEqual({ a: { b: 2 } });
+    expect(toObjectParser("a[b]=2&a[]=1")).toEqual({ a: [1] });
+  });
+
   it("parses a single key/value pair", () => {
     expect(toObjectParser("foo=bar")).toEqual({ foo: "bar" });
   });

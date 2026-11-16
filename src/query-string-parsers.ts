@@ -6,6 +6,18 @@ const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 const isForbiddenKey = (key: string) => FORBIDDEN_KEYS.has(key);
 
+// Malformed percent-encoding (`%`, `%ZZ`, a truncated UTF-8 sequence) makes
+// `decodeURIComponent` throw a URIError. Keep the raw text instead of throwing.
+const safeDecode = (value: any): string => {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const isContainer = (value: any) => typeof value === "object" && value !== null;
+
 export function toObjectParser(query: string) {
   const vars = query.split("&");
   const result: ObjectType = Object.create(null);
@@ -22,7 +34,7 @@ export function toObjectParser(query: string) {
     } else if (isNumeric(value)) {
       value = Number(value);
     } else {
-      value = decodeURIComponent(value);
+      value = safeDecode(value);
     }
 
     const keys = key.split("[");
@@ -37,15 +49,22 @@ export function toObjectParser(query: string) {
 
       if (j === keys.length - 1) {
         if (isArrayKey) {
-          if (!currentObj[currentKey]) {
-            currentObj[currentKey] = [];
+          const existing = currentObj[currentKey];
+          if (Array.isArray(existing)) {
+            existing.push(value);
+          } else if (existing === undefined || isContainer(existing)) {
+            // nothing yet, or an object: the array replaces it
+            currentObj[currentKey] = [value];
+          } else {
+            // a scalar seen earlier under the same key joins the array
+            currentObj[currentKey] = [existing, value];
           }
-          currentObj[currentKey].push(value);
         } else {
           currentObj[currentKey] = value;
         }
       } else {
-        if (!currentObj[currentKey]) {
+        // a scalar or an array under the same key is replaced by the object
+        if (!isContainer(currentObj[currentKey]) || Array.isArray(currentObj[currentKey])) {
           currentObj[currentKey] = Object.create(null);
         }
         currentObj = currentObj[currentKey];

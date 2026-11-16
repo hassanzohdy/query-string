@@ -132,6 +132,8 @@ queryString.parse("path=%2Fhome%2Fuser");      // { path: "/home/user" }
 queryString.parse("q=a+b");                    // { q: "a+b" }   — "+" is literal, NOT a space
 ```
 
+Malformed percent-encoding never throws: a value that cannot be decoded keeps its raw text (`a=%` gives `{ a: "%" }`, `bad=%ZZ` gives `{ bad: "%ZZ" }`).
+
 ### Arrays — `key[]=value`
 
 A key suffixed with `[]` collects repeated occurrences into an array. Each element is numeric-coerced individually:
@@ -141,6 +143,8 @@ queryString.parse("tags[]=a&tags[]=b&tags[]=c");   // { tags: ["a", "b", "c"] }
 queryString.parse("ids[]=1&ids[]=2&ids[]=3");      // { ids: [1, 2, 3] }
 queryString.parse("vals[]=1&vals[]=two&vals[]=3"); // { vals: [1, "two", 3] }
 ```
+
+Mixing shapes under one key never throws. A scalar seen before `key[]` joins the array (`a=x&a[]=y` gives `{ a: ["x", "y"] }`); in every other mix (`a[]=y&a=x`, `a=x&a[b]=1`, `a[b]=1&a=x`) the later shape replaces the earlier one.
 
 ### Nested objects — `parent[child]=value`
 

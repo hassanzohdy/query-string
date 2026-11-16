@@ -19,7 +19,7 @@ import queryString from "@mongez/query-string";
 
 ## Reference (by area)
 
-- [Parse](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/skills/parse.md): `queryString.parse(text)` and `queryString.all(text?)`. Numeric coercion (`age=42` → `{ age: 42 }`), `decodeURIComponent` on non-numeric values, `key[]` arrays, `key[sub]` nesting. Edge cases: empty input, missing `=`, leading `?`.
+- [Parse](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/skills/parse.md): `queryString.parse(text)` and `queryString.all(text?)`. Numeric coercion (`age=42` → `{ age: 42 }`), `decodeURIComponent` on non-numeric values (malformed `%` keeps the raw text instead of throwing), `key[]` arrays, `key[sub]` nesting, mixed shapes under one key never throw (`a=x&a[]=y` → `{ a: ["x", "y"] }`, otherwise the later shape wins). Edge cases: empty input, missing `=`, leading `?`.
   - *Auto-trigger:* Load when code calls `queryString.parse`, `queryString.all`, or `queryString.get`, or the user asks how to read a URL query string.
 - [Serialize](https://raw.githubusercontent.com/hassanzohdy/mongez-query-string/main/skills/serialize.md): `queryString.toQueryString(params)` and `queryString.update(params)`. Object → query string, array `[]=` syntax, nested `parent[child]=` syntax, string passthrough. Known quirks: no percent-encoding, `null` drops the key.
   - *Auto-trigger:* Load when code calls `queryString.toQueryString`, `queryString.update`, or `queryString.toString`, or the user asks how to build/update a URL query string.

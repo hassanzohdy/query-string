@@ -44,10 +44,11 @@ Parses a query string into an object.
 - A leading `?` is stripped.
 - Empty input returns `{}`.
 - Values that look numeric (`!isNaN(value - parseFloat(value))`) become numbers.
-- Non-numeric values are passed through `decodeURIComponent`. (`+` is NOT translated to a space — use `replace(/\+/g, "%20")` first if your producer uses it.)
+- Non-numeric values are passed through `decodeURIComponent`. (`+` is NOT translated to a space — use `replace(/\+/g, "%20")` first if your producer uses it.) Malformed percent-encoding never throws: a value that cannot be decoded keeps its raw text (`a=%` → `{ a: "%" }`, `bad=%ZZ` → `{ bad: "%ZZ" }`).
 - Keys suffixed with `[]` produce array values. Repeat the key for multiple elements.
 - Keys with `[sub]` produce nested objects. Any depth: `a[b][c]=1` → `{ a: { b: { c: 1 } } }`.
 - Duplicate non-array keys overwrite — last write wins.
+- Mixing shapes under one key never throws. A scalar seen before `key[]` joins the array (`a=x&a[]=y` → `{ a: ["x", "y"] }`, and an earlier `0` or `""` is kept); in every other mix the later shape replaces the earlier one (`a[]=y&a=x` → `{ a: "x" }`, `a=x&a[b]=1` → `{ a: { b: 1 } }`, `a[b]=1&a=x` → `{ a: "x" }`).
 
 Behavior table:
 
